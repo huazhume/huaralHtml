@@ -1,0 +1,116 @@
+@charset "utf-8";
+
+#banner {
+    position: absolute;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+    align-items: center;
+}
+#banner_text {
+    position: absolute;
+    width: 120px;
+    z-index: 1002;
+    right: 3px;
+    bottom: 3px;
+}
+
+#banner ul {
+    position: absolute;
+    filter: Alpha(Opacity=80);
+    opacity: 0.8;
+    z-index: 1002;
+    padding: 0;
+    bottom: 25px;
+    height: 2px;
+    width: 30%;
+    margin-left: 35%;
+}
+#banner ul li {
+    float: left;
+    display: block;
+    background: #E3E3E3;
+    cursor: pointer;
+    width: 18.75%;
+    height: 2px;
+    margin-left: 5%;
+    text-indent: -999999px;
+}
+
+#banner ul li.on {
+    background-color: #333;
+}
+
+#banner_list a {
+    position: relative;
+}
+#banner_list img{
+	width: 100%;
+	height: 520px;
+}
+.index_table{
+	position: absolute;
+	width: 100%;
+	margin-top: 522px;
+}
+
+.index_table tr{
+	height: 180px;
+	width: 100%;
+}
+.index_table td{
+	height: 180px;
+	width:25%;
+}
+.index_table td img{
+	width: 100%;
+	height: 100%;
+	cursor: pointer;
+    background:url(../img/ic_notification_logo_white_24dp.png) center no-repeat;
+}
+.index_table td video{
+	width: 100%;
+	height: 160px;;
+}
+.index_table td #table_first{
+	background: #E3E3E3;
+}
+
+#container {
+	position: absolute;
+	margin: 10px 1% 0px 1%;
+	width: 100%;
+	height: 400px;
+}
+#container .sidebar {
+	padding: 20px 0px 20px 0px;
+	width: 12%;
+	max-height: 750px;
+	background-color: #DCDCDC;
+	border-radius: 5px;
+	display: inline-block;
+	float: left;
+	text-align: center;
+}
+/*#container .sidebar .bookid {
+	float: none;
+	height: 30px;
+	font-size: 13px;
+	color: #333;
+}*/
+
+#container .list {
+	float: left;
+	display: inline-block;
+	width: 85%;
+	margin-left: 1%;
+	max-height: 750px;
+	/*background-color: #555;*/
+}
+
+
+
+
+
+
+
