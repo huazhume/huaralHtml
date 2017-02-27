@@ -55,7 +55,7 @@
 			console.log("afsdfadfasd");
 			$.ajax({
 				type: "get",
-				url: "http://127.0.0.1/huaralserver/interface/Booktags.php",
+				url: "http://221.219.150.145:9000/huaralserver/interface/Booktags.php",
 				async: true,
 				data: {
 					'bookname': bookname
@@ -128,10 +128,11 @@
 
 	function tagcontent(tag, name) {
 		var sider = $("#tag_content .list");
-		sider.empty();
+		var iframe = $(sider[0].contentWindow.document.body);
+		iframe.empty();
 		$.ajax({
 			type: "get",
-			url: "http://127.0.0.1/huaralserver/interface/tagcontent.php",
+			url: "http://221.219.150.145:9000/huaralserver/interface/tagcontent.php",
 			async: true,
 			data: {
 				"bookname": name,
@@ -143,7 +144,7 @@
 //				console.log(data);
 				var inhtml = data.msg_data[0].bookcontent;
 				var box = $(inhtml);
-				sider.append(box);
+				iframe.append(box);
 			},
 			error: function(data) {
 			console.log(data);

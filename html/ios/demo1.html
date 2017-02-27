@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+	</head>
+
+	<body>
+		<!-- -->
+		<!-- 文章内容 -->
+		<div >
+			<header style="text-align: center;">
+				<div style="color: #177F46; font-size: 20px; margin-top: 30px;text-align: left;">
+					&nbsp;iOS
+				</div>
+				<hr style="background: #E3E3E3;height:1px;border:none;border-top:1px;" />
+				<div style="color: #177F46; font-size: 20px; ">
+					iOS之Runtime开发实例
+				</div>
+				<br />
+			</header>
+			<div class="show-content" style="line-height: 24px;font-size: 14px;">
+			<strong>一、什么是runtime（也就是所谓的“运行时”，因为是在运行时实现的。）</strong>
+			<ul>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">1.runtime是一套底层的c语言API(包括很多强大实用的c语言类型,c语言函数); [runtime运行系统] </strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">2.实际上,平时我们编写的oc代码,底层都是基于runtime实现的; [OC语言的动态性]</strong> </li>
+			</ul>
+			<p><strong>运行时系统 (runtime system)，</strong>对于C语言，函数的调用在编译的时候会决定调用哪个函数。对于<strong><strong>OC</strong></strong>的函数，属于动态调用过程，在编译的时候并不能决定真正调用哪个函数，只有在真正运行的时候才会根据函数的名称找到对应的函数来调用。<strong><strong> runtime</strong></strong>就是<strong><strong>OC</strong></strong>辛苦的幕后工作人员。（<strong>编译器会自动帮助我们编译成runtime代码。</strong>）<br><strong>动态特性:</strong>使得它在语言层面上支持程序的可扩展性。只有在程序运行时，才会去确定对象的类型，并调用类与对象相应的方法。利用runtime机制让我们可以在程序运行时动态修改类的具体实现、包括类中的所有私有属性、方法。这也是本文runtime例子的出发点。<br>我们所敲入的代码转化为运行时的runtime函数代码，最终在程序运行时转成了底层的runtime的c语言代码;<br><em>举例</em>：<br>当某个对象使用语法[receiver message]来调用某个方法时，其实[receiver message]被编译器转化为：</p>
+			<pre><code  style="color:#177F46 ;">id objc_msgSend ( id self, SEL op, ... );</code></pre>
+			<p>也就是说,我们平时编写的<strong><strong>oc</strong></strong>代码，方法调用的本质，就是在编译阶段，编译器转化为向对象发送消息。</p>
+			<hr>
+			<strong>二、runtime的几种使用方法</strong>
+			<p>我们通过继承于NSObject的person类，来对runtime进行学习。<br>本文共有<strong>6</strong>个关于runtime机制方法的小例子，分别是：</p>
+			<ul>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">1.获取person类的所有变量；</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">2.获取person类的所有方法；</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">3.改变person类的私有变量name的值；</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">4.为person的category类增加一个新属性；</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">5.为person类添加一个方法；</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">6.交换person类的2个方法的功能；</strong></li>
+			</ul>
+			<p><strong><em>（个人习惯，喜欢为6个例子添加按钮各自的行为方法，并分别执行相应的行为，以此看清各个runtime函数的具体功能所带来的效果。）</em></strong></p>
+			<p>首先，创建新的项目，并在项目中新建一个普通的OC类：<strong>person</strong>类(继承于<strong>NSObject</strong>)，为了避免后面与其他方法函数搞混，我们把完整的<strong>person</strong>类编写齐全，用于后面使用<strong>runtime</strong>的几种方法：<br>①<strong>person.h</strong>如下：</p>
+			<pre><code  style="color:#177F46 ;">#import &lt;Foundation/Foundation.h&gt;
+@interface person : NSObject
+@property (nonatomic,assign)int age;  //属性变量
+-(void)func1;
+-(void)func2;
+@end</code  style="color:#177F46 ;"></pre>
+			<p>②<strong>person.m</strong>如下：</p>
+			<pre><code  style="color:#177F46 ;">#import "person.h"
+@implementation person{ 
+  NSString *name; //实例变量
+}
+//初始化person属性
+-(instancetype)init{ 
+self = [super init]; 
+if(self) { 
+  name = @"Tom"; 
+  self.age = 12; 
+} 
+return self;
+}
+//person的2个普通方法
+-(void)func1{ 
+  NSLog(@"执行func1方法。");
+}-(void)func2{ 
+  NSLog(@"执行func2方法。");
+}
+//输出person对象时的方法：
+-(NSString *)description{ 
+return [NSString stringWithFormat:@"name:%@ age:%d",name,self.age];
+}
+@end</code  style="color:#177F46 ;"></pre>
+			<p>从person类的描述中，我们可以看到person类含有一个可供外类使用的共有属性<strong>age</strong>，以及一个外界不可以访问私有属性<strong>name</strong>，但是，有木有想过，其实在外类，<strong>name</strong>也是可以访问的。OC里面，通过runtime系统，苹果允许不受这些私有属性的限制，对私有属性私有方法等进行访问、添加、修改、甚至替换系统的方法。<br>那么，为项目的故事板添加<strong>6</strong>个按钮；<br></p>
+			<div class="image-package">
+				<img src="http://upload-images.jianshu.io/upload_images/1707017-910d686ef8244b6f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/1707017-910d686ef8244b6f.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br>
+				<div class="image-caption"></div>
+			</div>
+			<p><br>在使用runtime的地方，我们都需要包含头文件: </p>
+			<pre><code  style="color:#177F46 ;">#import &lt;objc/runtime.h&gt;  //（在需要使用runtime的实现文件.m中包含即可.）</code></pre>
+			<h3><strong>1.获取person类的所有变量</strong></h3>
+			<p>将第一个按钮关联到ViewController.h，添加行为并命名其方法为：“<strong>getAllVariable</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)getAllVariable:(UIButton *)sender; //获取所有变量</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/*1.获取person所有的成员变量*/
+- (IBAction)getAllVariable:(UIButton *)sender {
+unsigned int count = 0; 
+//获取类的一个包含所有变量的列表，IVar是runtime声明的一个宏，是实例变量的意思. 
+Ivar *allVariables = class_copyIvarList([person class], &amp;count); 
+for(int i = 0;i&lt;count;i++) 
+{ 
+//遍历每一个变量，包括名称和类型（此处没有星号"*"） 
+Ivar ivar = allVariables[i]; 
+const char *Variablename = ivar_getName(ivar); //获取成员变量名称 
+const char *VariableType = ivar_getTypeEncoding(ivar); //获取成员变量类型 
+NSLog(@"(Name: %s) ----- (Type:%s)",Variablename,VariableType); 
+}
+}</code  style="color:#177F46 ;"></pre>
+			<p>点击按钮后，得到的输出如下：(i表示类型为int)</p>
+			<pre><code  style="color:#177F46 ;">2016-05-18 17:17:10.502 runtime运行时[10164:452725] (Name: name) ----- (Type:@"NSString")
+2016-05-18 17:17:10.503 runtime运行时[10164:452725] (Name: _age) ----- (Type:i)</code></pre>
+			<p><strong>分析</strong>：<strong>Ivar</strong>，一个指向objc_ivar结构体指针,包含了变量名、变量类型等信息。<br>可以看到，私有属性<strong>name</strong>能够访问到了。 在有些项目中，为了对某些私有属性进行隐藏，某些<strong>.h</strong>文件中没有出现相应的显式创建，而是如上面的person类中，在<strong>.m</strong>中进行私有创建，但是我们可以通过runtime这个有效的方法，访问到所有包括这些隐藏的私有变量。<br><strong>拓展</strong>：<br><strong>①</strong> <em>class_copyIvarList</em>能够获取一个含有类中所有成员变量的列表，列表中包括属性变量和实例变量。需要注意的是，如果如本例中，age返回的是"_age"，但是如果在person.m中加入：<code>@synthesize age;</code><br>那么控制台第二行返回的是<strong>"(Name: age) ----- (Type:i) ；"</strong><br>（因为@property是生成了"<strong>_age</strong>"，而@synthesize是执行了"@synthesize age = _age;"，关于OC属性变量与实例变量的区别、@property、@synthesize的作用等具体的知识，有兴趣的童鞋可以自行了解。）</p>
+			<p><strong>②</strong>如果单单需要获取属性列表的话，可以使用函数：<em>class_copyPropertyList（）</em>;只是返回的属性变量仅仅是“age”，做为实例变量的name是不被获取的。<br>而<em>class_copyIvarList（）</em>函数则能够返回<strong>实例</strong>变量和<strong>属性</strong>变量的所有成员变量。</p>
+			<h3><strong><strong>2.获取person类的所有方法</strong></strong></h3>
+			<p>将第二个按钮关联到ViewController.h，添加行为并命名其方法为：“<strong>getAllMethod</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)getAllMethod:(UIButton *)sender;  //获取所有方法</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/*2.获取person所有方法*/
+- (IBAction)getAllMethod:(UIButton *)sender {
+unsigned int count;
+//获取方法列表，所有在.m文件显式实现的方法都会被找到，包括setter+getter方法； 
+Method *allMethods = class_copyMethodList([person class], &amp;count); 
+for(int i =0;i&lt;count;i++)
+{ 
+//Method，为runtime声明的一个宏，表示对一个方法的描述 
+Method md = allMethods[i]; 
+//获取SEL：SEL类型,即获取方法选择器@selector() 
+SEL sel = method_getName(md); 
+//得到sel的方法名：以字符串格式获取sel的name，也即@selector()中的方法名称 
+const char *methodname = sel_getName(sel); NSLog(@"(Method:%s)",methodname); 
+}
+}</code  style="color:#177F46 ;"></pre>
+			<p>点击按钮后，控制台输出：</p>
+			<pre><code  style="color:#177F46 ;">2016-05-19 17:05:19.880 runtime运行时[14054:678124] (Method:func1)
+2016-05-19 17:05:19.881 runtime运行时[14054:678124] (Method:func2)
+2016-05-19 17:05:19.881 runtime运行时[14054:678124] (Method:setAge:)
+2016-05-19 17:05:19.881 runtime运行时[14054:678124] (Method:age)
+2016-05-19 17:05:19.881 runtime运行时[14054:678124] (Method:.cxx_destruct) 
+2016-05-19 17:05:19.882 runtime运行时[14054:678124] (Method:description)
+2016-05-19 17:05:19.882 runtime运行时[14054:678124] (Method:init)</code></pre>
+			<p>控制台输出了包括<strong>set</strong>和<strong>get</strong>等方法名称。【备注：.cxx_destruct方法是关于系统自动内存释放工作的一个隐藏的函数，当ARC下，且本类拥有实例变量时，才会出现；】<br><strong>分析</strong>：<strong>Method</strong>是一个<strong>指向objc_method结构体指针</strong>，表示对类中的某个方法的描述。在API中的定义：<code>typedef struct objc_method Method;</code><br>而objc_method结构体如下：</p>
+			<pre><code  style="color:#177F46 ;">truct objc_method { 
+SEL method_name OBJC2_UNAVAILABLE; 
+char *method_types OBJC2_UNAVAILABLE; 
+IMP method_imp OBJC2_UNAVAILABLE;
+}</code></pre>
+			<ul>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">method_name :方法选择器@selector()，类型为<em>SEL</em>。 相同名字的方法下，即使在不同类中定义，它们的方法选择器也相同。</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">method_types：方法类型，是个char指针，存储着方法的参数类型和返回值类型。</strong></li>
+				<li  style="color:#177F46 ;"><strong class="num" style="color:#333 ;">method_imp：指向方法的具体实现的指针，数据类型为IMP，本质上是一个函数指针。 在第五个按钮行为“增加一个方法”部分会提到。</strong></li>
+			</ul>
+			<p><strong>SEL</strong>：数据类型，表示方法选择器，可以理解为对方法的一种包装。在每个方法都有一个与之对应的SEL类型的数据，根据一个SEL数据“@selector(方法名)”就可以找到对应的方法地址，进而调用方法。<br>因此可以通过：获取 <strong><em>Method结构体-&gt;得到SEL选择器名称-&gt;得到对应的方法名</em></strong> ，这样的方式，便于认识OC中关于方法的定义。</p>
+			<h3><strong>3.改变person对象的私有变量name的值.</strong></h3>
+			<p>将第三个按钮关联到ViewController.h，添加行为并命名其方法为：“<strong>changeVariable</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)changeVariable:(UIButton *)sender;//改变其中name变量</code></pre>
+			<p>在ViewController.m中创建一个person对象，记得<strong>初始化</strong></p>
+			<pre><code  style="color:#177F46 ;">@implementation ViewController{ 
+  person *per; //创建一个person实例
+}
+- (void)viewDidLoad { 
+  [super viewDidLoad]; 
+  per = [[person alloc]init]; //记得要初始化...不然后果自己尝试下
+}</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/*3.改变person的name变量属性*/
+- (IBAction)changeVariable:(UIButton *)sender {
+
+NSLog(@"改变前的person：%@",per); 
+
+unsigned int count = 0;
+Ivar *allList = class_copyIvarList([person class], &amp;count); 
+Ivar ivv = allList[0]; //从第一个例子getAllVariable中输出的控制台信息，我们可以看到name为第一个实例属性。 
+object_setIvar(per, ivv, @"Mike"); //name属性Tom被强制改为Mike。 
+
+NSLog(@"改变之后的person：%@",per);
+}</code></pre>
+			<p>点击按钮后，控制台输出：</p>
+			<pre><code  style="color:#177F46 ;">2016-05-19 22:45:05.125 runtime运行时[1957:34730] 改变前的person：name:Tom age:12
+2016-05-19 22:45:05.126 runtime运行时[1957:34730] 改变之后的person：name:Mike age:12</code></pre>
+			<h3>4.为person的category类增加一个新属性：</h3>
+			<p>如何在不改动某个类的前提下，添加一个新的属性呢？<br>答：<strong>可以利用runtime为分类添加新属性</strong>。<br>在iOS中，category，也就是分类，是不可以为本类添加新的属性的，但是在runtime中我们可以使用对象关联，为person类进行分类的新属性创建：<br><strong>①新建一个新的OC类：</strong><br></p>
+			<div class="image-package">
+				<img src="http://upload-images.jianshu.io/upload_images/1707017-70436ddc3821da1b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/1707017-70436ddc3821da1b.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br>
+				<div class="image-caption"></div>
+			</div>
+			<p>命名为：<strong>PersonCategory</strong> ，点击<strong>next</strong>：<br></p>
+			<div class="image-package">
+				<img src="http://upload-images.jianshu.io/upload_images/1707017-6b45521147708c32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/1707017-6b45521147708c32.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br>
+				<div class="image-caption"></div>
+			</div>
+			<p><br><strong>②</strong>在出现的新类“<strong>person+PersonCategory.h</strong>”中，添加“<strong>height</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">#import "person.h"
+@interface person (PersonCategory)
+@property (nonatomic,assign)float height; //新属性@end</code></pre>
+			<p>“<strong>person+PersonCategory.m</strong>”类的代码如下：</p>
+			<pre><code  style="color:#177F46 ;">#import "person+PersonCategory.h"
+#import &lt;objc/runtime.h&gt; //runtime API的使用需要包含此头文件
+
+const char * str = "myKey"; //做为key，字符常量 必须是C语言字符串；
+
+@implementation person (PersonCategory)
+
+-(void)setHeight:(float)height{ 
+NSNumber *num = [NSNumber numberWithFloat:height]; 
+/* 
+第一个参数是需要添加属性的对象； 
+第二个参数是属性的key; 
+第三个参数是属性的值,类型必须为id，所以此处height先转为NSNumber类型； 
+第四个参数是使用策略，是一个枚举值，类似@property属性创建时设置的关键字，可从命名看出各枚举的意义； 
+objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy);
+*/ 
+objc_setAssociatedObject(self, str, num, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+//提取属性的值: 
+-(float)height{ 
+NSNumber *number = objc_getAssociatedObject(self, str);
+return [number floatValue];
+}
+@end</code></pre>
+			<p>接下来，我们可以在ViewController.m中对person的一个对象进行<strong>height</strong>的访问了，<br>将第四个按钮关联到<strong>ViewController.h</strong>添加行为并命名其方法为：“<strong>addVariable：</strong>”（记得：<strong><em>#import "person+PersonCategory.h"</em></strong>）</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)addVariable:(UIButton *)sender;</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/* 4.添加新的属性*/
+- (IBAction)addVariable:(UIButton *)sender { 
+per.height = 12;           //给新属性height赋值 
+NSLog(@"%f",[per height]); //访问新属性值
+}</code></pre>
+			<p>点击按钮<strong>四</strong>、再点击按钮<strong>一</strong>、<strong>二</strong>获取类的属性、方法。</p>
+			<pre><code  style="color:#177F46 ;">2016-05-20 15:39:54.432 runtime运行时[4605:178974] 12.000000
+2016-05-20 15:39:56.295 runtime运行时[4605:178974] (Name: name) ----- (Type:@"NSString")
+2016-05-20 15:39:56.296 runtime运行时[4605:178974] (Name: _age) ----- (Type:i)
+2016-05-20 15:39:57.195 runtime运行时[4605:178974] (Method:func1)
+2016-05-20 15:39:57.196 runtime运行时[4605:178974] (Method:func2)
+2016-05-20 15:39:57.196 runtime运行时[4605:178974] (Method:setAge:)
+2016-05-20 15:39:57.196 runtime运行时[4605:178974] (Method:age)
+2016-05-20 15:39:57.196 runtime运行时[4605:178974] (Method:.cxx_destruct)
+2016-05-20 15:39:57.197 runtime运行时[4605:178974] (Method:description)
+2016-05-20 15:39:57.197 runtime运行时[4605:178974] (Method:init)
+2016-05-20 15:39:57.197 runtime运行时[4605:178974] (Method:height)
+2016-05-20 15:39:57.197 runtime运行时[4605:178974] (Method:setHeight:)</code></pre>
+			<p><strong>分析</strong>：可以看到分类的新属性可以在per对象中对新属性height进行访问赋值。<br>获取到person类属性时，依然没有height的存在，但是却有height和setHeight这两个方法；因为在分类中，即使使用@property定义了，也只是生成<em>set+get</em>方法，而不会生成<strong>_变量名</strong>，分类中是不允许定义变量的。<br>使用runtime中<strong>objc_setAssociatedObject()</strong>和<strong>objc_getAssociatedObject()</strong>方法，本质上只是为对象per添加了对height的属性关联，但是达到了新属性的作用；<br><strong>使用场景</strong>：假设imageCategory是UIImage类的分类，在实际开发中，我们使用UIImage下载图片或者操作过程需要增加一个URL保存一段地址，以备后期使用。这时可以尝试在分类中动态添加新属性MyURL进行存储。</p>
+			<h3><strong>5.为person类添加一个新方法；</strong></h3>
+			<p>将第五个按钮关联到ViewController.h，添加行为并命名其方法为：“<strong>addMethod</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)addMethod:(UIButton *)sender;</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/*5.添加新的方法试试(这种方法等价于对Father类添加Category对方法进行扩展)：*/
+- (IBAction)addMethod:(UIButton *)sender { 
+/* 动态添加方法： 
+  第一个参数表示Class cls 类型； 
+  第二个参数表示待调用的方法名称； 
+  第三个参数(IMP)myAddingFunction，IMP一个函数指针，这里表示指定具体实现方法myAddingFunction； 
+  第四个参数表方法的参数，0代表没有参数； 
+*/ 
+  class_addMethod([per class], @selector(NewMethod), (IMP)myAddingFunction, 0); 
+  //调用方法 【如果使用[per NewMethod]调用方法，在ARC下会报“no visible @interface"错误】 
+  [per performSelector:@selector(NewMethod)];
+}
+
+//具体的实现（方法的内部都默认包含两个参数Class类和SEL方法，被称为隐式参数。）
+int myAddingFunction(id self, SEL _cmd){ 
+  NSLog(@"已新增方法:NewMethod"); 
+  return 1;
+}</code></pre>
+			<p>点击按钮后，控制台输出：</p>
+			<pre><code  style="color:#177F46 ;">2016-05-20 14:08:55.822 runtime运行时[1957:34730] 已新增方法:NewMethod</code></pre>
+			<h3><strong> 6.交换person类的2个方法的功能：</strong></h3>
+			<p> 将第六个按钮关联到ViewController.h，添加行为并命名其方法为：“<strong>replaceMethod</strong>”：</p>
+			<pre><code  style="color:#177F46 ;">- (IBAction)replaceMethod:(UIButton *)sender;</code></pre>
+			<p>在ViewController.m中的实现如下：</p>
+			<pre><code  style="color:#177F46 ;">/* 6.交换两种方法之后（功能对调），可以试试让苹果乱套... */
+- (IBAction)replaceMethod:(UIButton *)sender { 
+Method method1 = class_getInstanceMethod([person class], @selector(func1)); 
+Method method2 = class_getInstanceMethod([person class], @selector(func2)); 
+
+//交换方法 
+method_exchangeImplementations(method1, method2); 
+[per func1]; //输出交换后的效果，需要对比的可以尝试下交换前运行func1；
+}</code></pre>
+			<p>点击按钮后，控制台输出：</p>
+			<pre><code  style="color:#177F46 ;">2016-05-20 14:11:57.381 runtime运行时[1957:34730] 执行func2方法。</code></pre>
+			<p><strong>交换方法的使用场景</strong>：项目中的某个功能，在项目中需要多次被引用，当项目的需求发生改变时，要使用另一种功能代替这个功能，且要求不改变旧的项目(也就是不改变原来方法实现的前提下)。那么，我们可以在分类中，再写一个新的方法(符合新的需求的方法)，然后交换两个方法的实现。这样，在不改变项目的代码，而只是增加了新的代码的情况下，就完成了项目的改进，很好地体现了该项目的封装性与利用率。<br><strong>注</strong>：交换两个方法的实现一般写在类的load方法里面，因为load方法会在程序运行前加载一次。<br><br> </p>
+			<hr>
+
+		</div>
+		</div>
+		<!--  -->
+	</body>
+
+</html>
