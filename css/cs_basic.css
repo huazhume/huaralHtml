@@ -100,6 +100,7 @@ header #index_nav .nav_link a {
 	color: #eee;
 	display: block;
 	font-weight: 10;
+	font: bolder;
 }
 
 footer p {

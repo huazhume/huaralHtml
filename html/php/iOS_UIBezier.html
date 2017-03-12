@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+	</head>
+
+	<body>
+		<div>
+			<style>
+				code {
+					color: #177F46;
+				}
+				b,strong,h3{
+					color: #7C3876;
+				}
+			</style>
+			<header style="text-align: center;">
+				<div style="color: #177F46; font-size: 20px; margin-top: 30px;text-align: left;">
+					&nbsp;iOS
+				</div>
+				<hr style="background: #E3E3E3;height:1px;border:none;border-top:1px;" />
+				<div style="color: #177F46; font-size: 20px; ">
+					iOS绘图之UIBezierPath
+				</div>
+				<br />
+			</header>
+			<div class="note" style="line-height: 24px;font-size: 14px;>
+			<div class=" post ">
+				<div class="article ">
+					<!-- -->
+					<!-- 文章内容 -->
+					<div class="show-content ">
+						<p>使用UIKit实现自定义绘图主要是通过<code>UIBezierPath</code>这个类,它可以创建基于矢量的路径,和<code>sketch</code>及<code>ps</code>中的路径是同一个概念.对应Android中的<code>Path</code>这个类,实现的功能是一样的,但还是有些地方和Android中的使用不太一样,主要是因为iOS中没有<code>Canvas</code>及<code>Paint</code>这两个类,第一次使用时有些不习惯,这里总结一下如何使用<code>UIBezierPath</code>绘制常见的图形.<br>最终效果大致如下:<br></p>
+						<div class="image-package ">
+							<img src="http://upload-images.jianshu.io/upload_images/632614-07926922d8abd6df.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240 " data-original-src="http://upload-images.jianshu.io/upload_images/632614-07926922d8abd6df.png?imageMogr2/auto-orient/strip%7CimageView2/2 "><br>
+							<div class="image-caption "></div>
+						</div>
+						<h3>1. 直线</h3>
+						<pre><code class="swift ">let pathLine = UIBezierPath()
+UIColor.blueColor().setStroke() //设置线条的颜色
+pathLine.lineWidth = 5
+pathLine.moveToPoint(CGPoint(x: 100, y: y))
+pathLine.addLineToPoint(CGPoint(x: 300, y: y))
+pathLine.lineCapStyle = .Round //线条结束点的形状
+pathLine.stroke() // 画线条</code></pre>
+						<h3>2. 矩形</h3>
+						<p>最简单的方式是通过<code>UIRectFill</code>(只能绘制实心的矩形)</p>
+						<pre><code class="swift ">UIColor.blackColor().setFill()
+UIRectFill(CGRect(x: 100, y: y, width: 150, height: 50))</code></pre>
+						<p>通过<code>UIBezierPath</code>可以控制是否实心及边框的颜色:</p>
+						<pre><code class="swift ">let pathRect = UIBezierPath(rect: CGRect(x: 100, y: y, width: 50, height: 50))
+pathRect.lineWidth = 5
+UIColor.redColor().setStroke() //线条颜色
+pathRect.lineJoinStyle = .Round //连接点形状
+pathRect.stroke() //绘制边框
+UIColor.blueColor().setFill() //填充颜色
+pathRect.fill() //绘制填充内容</code></pre>
+						<p>绘制四个角都是圆角的矩形:</p>
+						<pre><code class="swift ">let pathRect = UIBezierPath(roundedRect: CGRect(x: 10, y: y + 50, width: 100, height: 40), cornerRadius: 8.0)
+UIColor.blackColor().setFill()
+pathRect.fill()</code></pre>
+						<p>绘制部分角是圆角的矩形:</p>
+						<pre><code class="swift ">let corners = UIRectCorner.TopLeft.union(UIRectCorner.BottomLeft)
+pathRect = UIBezierPath(roundedRect: CGRect(x: 10, y: y + 150, width: 100, height: 40) ,byRoundingCorners: corners, cornerRadii: CGSize(width: 10, height: 10))
+pathRect.stroke()</code></pre>
+						<h3>3. 圆</h3>
+						<pre><code class="swift ">let pathCircle = UIBezierPath(ovalInRect: CGRect(x: 100, y: y, width: 50, height: 50))
+UIColor.greenColor().setFill()
+pathCircle.fill()
+pathCircle.lineWidth = 5
+UIColor.redColor().setStroke()
+pathCircle.stroke()</code></pre>
+						<p>具体是绘制正圆还是椭圆直接通过上面的 <code>width</code>与<code>height</code>来控制,两者相等绘制出来就是正圆,否则就是椭圆.</p>
+						<h3>4. 多边形</h3>
+						<p>多边形的绘制主要依赖<code>moveToPoint</code>与<code>addLineToPoint</code>这两个方法,通过不同的组合画出不同的图形</p>
+						<pre><code class="swift ">let pathPg = UIBezierPath()
+pathPg.moveToPoint(CGPoint(x: 100, y: y))
+pathPg.addLineToPoint(CGPoint(x: 130, y: y + 120))
+pathPg.addLineToPoint(CGPoint(x: 200, y: y + 30))
+pathPg.addLineToPoint(CGPoint(x: 150, y: y + 40))
+UIColor.cyanColor().setFill()
+pathPg.fill()</code></pre>
+						<h3>5. 圆弧</h3>
+						<p>普通的弧线</p>
+						<pre><code class="swift ">UIColor.blackColor().setStroke()
+let pathArc = UIBezierPath(arcCenter: CGPoint(x: 120, y: y), radius: 40, startAngle: 0.0, endAngle: CGFloat(120 * M_PI / 180) , clockwise: true)
+pathArc.lineWidth = 3
+pathArc.stroke()</code></pre>
+						<p>或者</p>
+						<pre><code class="swift ">let pathArc2 = UIBezierPath()
+pathArc2.addArcWithCenter(CGPoint(x: 240, y: y), radius: 40, startAngle: 0.0, endAngle: CGFloat(160 * M_PI / 180), clockwise: true)
+pathArc2.lineWidth = 3
+pathArc2.stroke()</code></pre>
+						<p>如果要想绘制扇形,只需要在上面的基础上再画一条到圆弧中心点的线即可.</p>
+						<h3>6. 曲线</h3>
+						<p><code>UIBezierPath</code>提供了两种绘制曲线的方法:<code>addQuadCurveToPoint</code>及<code>addCurveToPoint</code>, 前者是绘制<code>二次贝塞尔曲线</code>后者绘制<code>三次贝塞尔曲线</code>,一般这两种就可以满足绘制曲线的需求的,所以<code>UIBezierPath</code>也没提供更高阶的曲线绘制的方法:<br><strong>二次贝塞尔曲线(一个控制点P1)</strong><br></p>
+						<div class="image-package ">
+							<img src="https://upload.wikimedia.org/wikipedia/commons/3/3d/B%C3%A9zier_2_big.gif " data-original-src="https://upload.wikimedia.org/wikipedia/commons/3/3d/B%C3%A9zier_2_big.gif "><br>
+							<div class="image-caption "></div>
+						</div>
+						<pre><code class="swift ">let pathQuad = UIBezierPath()
+pathQuad.moveToPoint(CGPoint(x: 400, y: y+20))
+pathQuad.addQuadCurveToPoint(CGPoint(x: 130, y: y), controlPoint: CGPoint(x: 150, y: y - 50))
+UIColor.cyanColor().setStroke()
+pathQuad.stroke()</code></pre>
+						<p><strong>三次贝塞尔曲线(两个控制点P1,P2)</strong><br></p>
+						<div class="image-package ">
+							<img src="https://upload.wikimedia.org/wikipedia/commons/d/db/B%C3%A9zier_3_big.gif " data-original-src="https://upload.wikimedia.org/wikipedia/commons/d/db/B%C3%A9zier_3_big.gif "><br>
+							<div class="image-caption "></div>
+						</div>
+						<pre><code class="swift ">let pathCurve = UIBezierPath()
+pathCurve.moveToPoint(CGPoint(x: 300, y: y - 100))
+pathCurve.addCurveToPoint(CGPoint(x: 200, y: y - 200), controlPoint1: CGPoint(x: 250, y: y - 250), controlPoint2: CGPoint(x: 270, y: y - 150))
+UIColor.darkGrayColor().setStroke()
+pathCurve.stroke()</code></pre>
+						<h3>源代码</h3>
+						<p>
+							<a href="https://github.com/huaral/iOS_Swift_UIBezierPath绘图.git" target="_blank ">iOS_Swift_UIBezierPath绘图</a>
+						</p>
+
+					</div>
+					<!--  -->
+
+					
+				</div>
+			</div>
+		</div>
+	</body>
+
+</html>

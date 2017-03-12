@@ -43,7 +43,7 @@
 					bookname = "html5";
 					break;
 				case tagsArr[4]:
-					bookname = "javaee";
+					bookname = "java";
 					break;
 				case tagsArr[5]:
 					bookname = "php";
@@ -55,7 +55,7 @@
 			console.log("afsdfadfasd");
 			$.ajax({
 				type: "get",
-				url: "http://221.219.150.145:9000/huaralserver/interface/Booktags.php",
+				url: "http://localhost/huaralserver/interface/Booktags.php",
 				async: true,
 				data: {
 					'bookname': bookname
@@ -132,7 +132,7 @@
 		iframe.empty();
 		$.ajax({
 			type: "get",
-			url: "http://221.219.150.145:9000/huaralserver/interface/tagcontent.php",
+			url: "http://localhost/huaralserver/interface/tagcontent.php",
 			async: true,
 			data: {
 				"bookname": name,
