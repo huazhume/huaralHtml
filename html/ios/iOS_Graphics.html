@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+	</head>
+
+	<body>
+		<div>
+			<style>
+				code {
+					color: #177F46;
+				}
+				
+				b,strong{
+					color: #7C3876;
+				}
+			</style>
+			<header style="text-align: center;">
+				<div style="color: #177F46; font-size: 20px; margin-top: 30px;text-align: left;">
+					&nbsp;iOS
+				</div>
+				<hr style="background: #E3E3E3;height:1px;border:none;border-top:1px;" />
+				<div style="color: #177F46; font-size: 20px; ">
+					iOS绘图之Core Graphics
+				</div>
+				<br />
+			</header>
+			<div class="note" style="line-height: 24px;font-size: 14px;>
+				<div class="post">
+					<div class="article">
+
+						<!-- 文章内容 -->
+						<div class="show-content">
+							<b>前言</b>
+							<p>iOS系统本身提供了两套绘图的框架，即<strong>UIBezierPath</strong> 和 <strong>Core Graphics</strong>。而前者所属UIKit，其实是对Core Graphics框架关于path的进一步封装，所以使用起来比较简单。但是毕竟Core Graphics更接近底层，所以它更加强大。</p>
+							<b>Core Graphics</b>
+
+							<p>这是一个绘图专用的API族，它经常被称为QuartZ或QuartZ 2D。Core Graphics是iOS上所有绘图功能的基石，包括UIKit。</p>
+							<p>要搞清楚Core Graphics就要搞清楚下面几个问题：</p>
+							<p><strong> 1.绘图需要 CGContextRef</strong><br>CGContextRef即图形上下文。可以这么理解，我们绘图是需要一个载体或者说输出目标，它用来显示绘图信息，并且决定绘制的东西输出到哪个地方。可以形象的比喻context就像一个“画板”，我们得把图形绘制到这个画板上。所以，绘图必须要先有context。<br><strong> 2.怎么拿到context？</strong></p>
+
+							<p>第一种方法是利用cocoa为你生成的图形上下文。当你子类化了一个UIView并实现了自己的drawRect：方法后，一旦<code>drawRect：</code>方法被调用，Cocoa就会为你创建一个图形上下文，此时你对图形上下文的所有绘图操作都会显示在UIView上。</p>
+							<p>第二种方法就是创建一个图片类型的上下文。调用<code>UIGraphicsBeginImageContextWithOptions</code>函数就可获得用来处理图片的图形上下文。利用该上下文，你就可以在其上进行绘图，并生成图片。调用<code>UIGraphicsGetImageFromCurrentImageContext</code>函数可从当前上下文中获取一个UIImage对象。记住在你所有的绘图操作后别忘了调用<code>UIGraphicsEndImageContext</code>函数关闭图形上下文。</p>
+							<p>简言之：</p>
+							<ul>
+								<li>重写UIView的<code>drawRect</code>方法，在该方法里便可得到context；</li>
+								<li>调用<code>UIGraphicsBeginImageContextWithOptions</code>方法得到context；</li>
+							</ul>
+							<p><strong> 3.注意</strong><br>并不是说一提到绘图，就一定得重写drawRect方法，只是因为通常情况下我们一般采用在drawRect方法里获取context这种方式。</p>
+							<p><strong> 4.drawRect方法什么时候触发</strong></p>
+							<ul>
+								<li>1.当view第一次显示到屏幕上时；</li>
+								<li>2.当调用view的<code>setNeedsDisplay或者setNeedsDisplayInRect:</code>方法时。</li>
+							</ul>
+							<b>步骤：</b>
+							<ul>
+								<li>1.先在drawRect方法中获得上下文context；</li>
+								<li>2.绘制图形（线，图形，图片等）；</li>
+								<li>3.设置一些修饰属性；</li>
+								<li>4.渲染到上下文，完成绘图。</li>
+							</ul>
+							<pre><code>#import "CustomView.h"
+
+@implementation CustomView
+
+- (void)drawRect:(CGRect)rect
+{
+    // 1.获取上下文
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+
+    // --------------------------实心圆
+
+    // 2.画图
+    CGContextAddEllipseInRect(ctx, CGRectMake(10, 10, 50, 50));
+    [[UIColor greenColor] set];
+
+    // 3.渲染
+    CGContextFillPath(ctx);
+
+
+
+    // --------------------------空心圆
+
+    CGContextAddEllipseInRect(ctx, CGRectMake(70, 10, 50, 50));
+    [[UIColor redColor] set];
+    CGContextStrokePath(ctx);
+
+
+
+    // --------------------------椭圆
+    //画椭圆和画圆方法一样，椭圆只是设置不同的长宽
+    CGContextAddEllipseInRect(ctx, CGRectMake(130, 10, 100, 50));
+    [[UIColor purpleColor] set];
+    CGContextFillPath(ctx);
+
+
+
+    // --------------------------直线
+    CGContextMoveToPoint(ctx, 20, 80); // 起点
+    CGContextAddLineToPoint(ctx, self.frame.size.width-10, 80); //终点
+//    CGContextSetRGBStrokeColor(ctx, 0, 1.0, 0, 1.0); // 颜色
+    [[UIColor redColor] set]; // 两种设置颜色的方式都可以
+    CGContextSetLineWidth(ctx, 2.0f); // 线的宽度
+    CGContextSetLineCap(ctx, kCGLineCapRound); // 起点和重点圆角
+    CGContextSetLineJoin(ctx, kCGLineJoinRound); // 转角圆角
+    CGContextStrokePath(ctx); // 渲染（直线只能绘制空心的，不能调用CGContextFillPath(ctx);）
+
+
+
+    // --------------------------三角形
+    CGContextMoveToPoint(ctx, 10, 150); // 第一个点
+    CGContextAddLineToPoint(ctx, 60, 100); // 第二个点
+    CGContextAddLineToPoint(ctx, 100, 150); // 第三个点
+    [[UIColor purpleColor] set];
+    CGContextClosePath(ctx);
+    CGContextStrokePath(ctx);
+
+
+
+    // --------------------------矩形
+    CGContextAddRect(ctx, CGRectMake(20, 170, 100, 50));
+    [[UIColor orangeColor] set];
+//    CGContextStrokePath(ctx); // 空心
+    CGContextFillPath(ctx);
+
+
+
+    // --------------------------圆弧
+    CGContextAddArc(ctx, 200, 170, 50, M_PI, M_PI_4, 0);
+    CGContextClosePath(ctx);
+    CGContextFillPath(ctx);
+
+
+    // --------------------------文字
+    NSString *str = @"你在红楼，我在西游";
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    dict[NSForegroundColorAttributeName] = [UIColor whiteColor]; // 文字颜色
+    dict[NSFontAttributeName] = [UIFont systemFontOfSize:14]; // 字体
+
+    [str drawInRect:CGRectMake(20, 250, 300, 30) withAttributes:dict];
+
+
+    // --------------------------图片
+    UIImage *img = [UIImage imageNamed:@"yingmu"];
+//    [img drawAsPatternInRect:CGRectMake(20, 280, 300, 300)]; // 多个平铺
+//    [img drawAtPoint:CGPointMake(20, 280)]; // 绘制到指定点，图片有多大就显示多大
+    [img drawInRect:CGRectMake(20, 280, 80, 80)]; // 拉伸
+}</code></pre>
+							<hr>
+							<b>绘图它能干什么？为什么要学习它？</b>
+							<p>我们常用绘图来自定义一些视图控件，以达到我们个性化的需求。<br>若自定义视图控件：我们可以子类化一个UIView，然后重写它的drawRect方法。在drawRect里进行图形绘制，从而实现自定义控件，完成酷炫个性化的控件。</p>
+							<b>结尾</b>
+							<p>关于绘图，其实在我当前接触的项目中用得很少，但是以后肯定会接触到。像这种不常用但比较重要的内容，我觉得要做到初步理解，然后梳理总结，到最后深度理解。所以写这篇文章。</p>
+
+						</div>
+						<!--  -->
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+
+</html>

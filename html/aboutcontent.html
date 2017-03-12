@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.js"></script>
+		<style>
+			body{
+				padding: 40px;
+			}
+			img{
+				max-width: 300px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<script type="text/javascript">
+			console.log("地址");
+			console.log(location.href);
+			var locationpath = location.href;
+			//				for(var i = 0;i< locationpath.length;i++){
+			//					var a = locationpath[i];
+			//					console.log(a);
+			//				}
+			console.log(GetArgsFromHref(locationpath, "param1"));
+			tagcontent(GetArgsFromHref(locationpath, "param2"),GetArgsFromHref(locationpath, "param1"));
+			function tagcontent(tag, name) {
+				var sider = $("body");
+				$.ajax({
+					type: "get",
+					url: "http://localhost/huaralserver/interface/tagcontent.php",
+					async: true,
+					data: {
+						"bookname": name,
+						"booktag": tag
+					},
+					dataType: "JSON",
+					success: function(data, status, xhl) {
+										console.log("start");
+										console.log(data);
+						var inhtml = data.msg_data[0].bookcontent;
+						var box = $(inhtml);
+						sider.append(box);
+					},
+					error: function(data) {
+						console.log(data);
+					}
+
+				});
+			}
+
+			function GetArgsFromHref(sHref, sArgName) {
+				var args = sHref.split("?");
+				var retval = "";
+				if(args[0] == sHref) /*参数为空*/ {
+					return retval; /*无需做任何处理*/
+				}
+				var str = args[1];
+				args = str.split("&");
+				for(var i = 0; i < args.length; i++) {
+					str = args[i];
+					var arg = str.split("=");
+					if(arg.length <= 1) continue;
+					if(arg[0] == sArgName)
+						retval = arg[1];
+				}
+				return retval;
+			}
+		</script>
+
+		<body>
+		</body>
+		<footer></footer>
+	</body>
+</html>
